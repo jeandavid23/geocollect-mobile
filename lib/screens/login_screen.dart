@@ -16,22 +16,29 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _error;
 
   Future<void> _login() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     final ok = await Api.instance.login(_user.text.trim(), _pass.text);
     if (!mounted) return;
     setState(() => _loading = false);
     if (ok) {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+      Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (_) => const HomeScreen()));
     } else {
       setState(() => _error = 'Identifiant ou mot de passe incorrect.');
     }
   }
 
-  void _fill(String u, String p) { _user.text = u; _pass.text = p; }
+  void _fill(String u, String p) {
+    _user.text = u;
+    _pass.text = p;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final green = const Color(kPrimaryColor);
+    const green = Color(kPrimaryColor);
     return Scaffold(
       backgroundColor: const Color(0xFF123F24),
       body: SafeArea(
@@ -42,40 +49,58 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  width: 72, height: 72,
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20)),
                   child: Icon(Icons.eco, color: green, size: 40),
                 ),
                 const SizedBox(height: 16),
                 const Text('GeoCollect EUDR',
-                    style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold)),
                 const Text('Cartographie GPS & conformité EUDR',
                     style: TextStyle(color: Color(0xFFC7E4D1))),
                 const SizedBox(height: 28),
                 Container(
                   padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+                  decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20)),
                   child: Column(
                     children: [
                       TextField(
                         controller: _user,
-                        decoration: const InputDecoration(labelText: 'Identifiant', border: OutlineInputBorder()),
+                        decoration: const InputDecoration(
+                            labelText: 'Identifiant',
+                            border: OutlineInputBorder()),
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _pass,
                         obscureText: true,
-                        decoration: const InputDecoration(labelText: 'Mot de passe', border: OutlineInputBorder()),
+                        decoration: const InputDecoration(
+                            labelText: 'Mot de passe',
+                            border: OutlineInputBorder()),
                       ),
-                      if (_error != null) Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Text(_error!, style: const TextStyle(color: Colors.red)),
-                      ),
+                      if (_error != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Text(_error!,
+                              style: const TextStyle(color: Colors.red)),
+                        ),
                       const SizedBox(height: 16),
                       FilledButton(
                         onPressed: _loading ? null : _login,
                         child: _loading
-                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white))
                             : const Text('Se connecter'),
                       ),
                       const SizedBox(height: 8),

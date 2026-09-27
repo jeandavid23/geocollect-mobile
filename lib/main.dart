@@ -15,7 +15,7 @@ class GeoCollectApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final green = const Color(kPrimaryColor);
+    const green = Color(kPrimaryColor);
     return MaterialApp(
       title: kAppName,
       debugShowCheckedModeBanner: false,
@@ -23,12 +23,14 @@ class GeoCollectApp extends StatelessWidget {
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: green, primary: green),
         scaffoldBackgroundColor: const Color(0xFFF4F7F1),
-        appBarTheme: AppBarTheme(backgroundColor: green, foregroundColor: Colors.white),
+        appBarTheme:
+            AppBarTheme(backgroundColor: green, foregroundColor: Colors.white),
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
             backgroundColor: green,
             minimumSize: const Size.fromHeight(50),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           ),
         ),
       ),
