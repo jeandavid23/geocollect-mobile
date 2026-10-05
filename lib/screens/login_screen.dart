@@ -1,4 +1,6 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../config.dart';
 import '../services/api.dart';
 import 'home_screen.dart';
@@ -28,6 +30,43 @@ class _LoginScreenState extends State<LoginScreen> {
           context, MaterialPageRoute(builder: (_) => const HomeScreen()));
     } else {
       setState(() => _error = 'Identifiant ou mot de passe incorrect.');
+    }
+  }
+
+  Future<void> _loginGoogle() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final g = GoogleSignIn(
+        scopes: const ['email'],
+        serverClientId: kGoogleWebClientId,
+        clientId: Platform.isIOS && kGoogleIosClientId.isNotEmpty ? kGoogleIosClientId : null,
+      );
+      await g.signOut(); // laisse choisir le compte Google à chaque fois
+      final account = await g.signIn();
+      if (account == null) {
+        setState(() => _loading = false); // annulé par l'utilisateur
+        return;
+      }
+      final idToken = (await account.authentication).idToken;
+      if (idToken == null) throw Exception('jeton Google absent');
+      final err = await Api.instance.loginWithGoogle(idToken);
+      if (!mounted) return;
+      setState(() => _loading = false);
+      if (err == null) {
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+      } else {
+        setState(() => _error = err);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = 'Connexion Google impossible. Vérifiez votre connexion Internet.';
+      });
     }
   }
 
@@ -103,6 +142,20 @@ class _LoginScreenState extends State<LoginScreen> {
                                     strokeWidth: 2, color: Colors.white))
                             : const Text('Se connecter'),
                       ),
+                      if (kGoogleWebClientId.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        OutlinedButton.icon(
+                          onPressed: _loading ? null : _loginGoogle,
+                          icon: const Text('G',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                  color: Color(0xFF4285F4))),
+                          label: const Text('Se connecter avec Google'),
+                          style: OutlinedButton.styleFrom(
+                              minimumSize: const Size.fromHeight(46)),
+                        ),
+                      ],
                       const SizedBox(height: 8),
                       Wrap(spacing: 6, children: [
                         _demo('admin', 'admin123'),

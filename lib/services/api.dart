@@ -65,6 +65,25 @@ class Api {
     return false;
   }
 
+  /// Connexion avec Google : le jeton d'identité est vérifié par le serveur, qui retrouve le compte par son e-mail.
+  /// Renvoie null si succès, sinon le message d'erreur à afficher.
+  Future<String?> loginWithGoogle(String idToken) async {
+    final r = await http.post(
+      Uri.parse('$kApiBase/auth/google/'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'credential': idToken}),
+    );
+    final d = jsonDecode(utf8.decode(r.bodyBytes));
+    if (r.statusCode == 200 && d is Map<String, dynamic>) {
+      _access = d['access'];
+      _refresh = d['refresh'];
+      user = d['user'];
+      await _save();
+      return null;
+    }
+    return (d is Map && d['detail'] != null) ? d['detail'].toString() : 'Connexion Google impossible.';
+  }
+
   /// Liste (gère la pagination DRF).
   Future<List<dynamic>> list(String path) async {
     final r = await http.get(Uri.parse('$kApiBase$path'), headers: _headers);
