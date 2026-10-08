@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../config.dart';
 import '../services/api.dart';
+import '../services/offline.dart';
 import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -26,6 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
     setState(() => _loading = false);
     if (ok) {
+      Offline.instance.startAutoSync();
       Navigator.pushReplacement(
           context, MaterialPageRoute(builder: (_) => const HomeScreen()));
     } else {
@@ -56,6 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       setState(() => _loading = false);
       if (err == null) {
+        Offline.instance.startAutoSync();
         Navigator.pushReplacement(
             context, MaterialPageRoute(builder: (_) => const HomeScreen()));
       } else {

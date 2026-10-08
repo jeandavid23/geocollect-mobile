@@ -4,7 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import '../config.dart';
-import '../services/api.dart';
+import '../services/offline.dart';
 
 class MappingScreen extends StatefulWidget {
   final Map<String, dynamic> producer;
@@ -101,29 +101,34 @@ class _MappingScreenState extends State<MappingScreen> {
       'vertex_count': _points.length,
       'geometry': {'type': 'Polygon', 'coordinates': [coords]},
       'is_synced': true,
+      'mapping_ended_at': DateTime.now().toUtc().toIso8601String(),
     };
-    final res = await Api.instance.create('/parcels/', body);
+    // 1. toujours enregistrée sur le téléphone (aucune perte, même sans réseau)
+    final item = await Offline.instance.enqueue(body, '${widget.producer['full_name'] ?? ''}');
+    // 2. envoi immédiat si le réseau le permet
+    await Offline.instance.sync();
     if (!mounted) return;
     setState(() => _saving = false);
-    if (res != null) {
-      showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Parcelle enregistrée ✓'),
-          content: Text('${res['field_id'] ?? ''}\nScore EUDR : ${res['eudr_score'] ?? '—'} %\nStockée dans la base.'),
-          actions: [
-            TextButton(
-              onPressed: () { Navigator.pop(context); Navigator.pop(context); },
-              child: const Text('Terminer'),
-            ),
-          ],
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Échec de l\'enregistrement. Vérifiez la connexion.')),
-      );
-    }
+    final sent = !Offline.instance.outbox.any((p) => p.clientId == item.clientId);
+    final refused = Offline.instance.outbox.where((p) => p.clientId == item.clientId && p.error != null).firstOrNull;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        title: Text(sent ? 'Parcelle envoyée' : refused != null ? 'Parcelle refusée par le serveur' : 'Parcelle enregistrée sur le téléphone'),
+        content: Text(sent
+            ? 'Elle est enregistrée dans la base de la coopérative.'
+            : refused != null
+                ? '${refused.error}\n\nElle reste sur le téléphone : la coopérative peut corriger le problème, puis vous la renverrez depuis l\'accueil.'
+                : 'Pas de réseau pour le moment. Elle sera envoyée automatiquement dès que le téléphone captera.'),
+        actions: [
+          TextButton(
+            onPressed: () { Navigator.pop(context); Navigator.pop(context); },
+            child: const Text('Terminer'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

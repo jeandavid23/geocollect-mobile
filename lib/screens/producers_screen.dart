@@ -13,6 +13,7 @@ class ProducersScreen extends StatefulWidget {
 class _ProducersScreenState extends State<ProducersScreen> {
   List<dynamic> _producers = [];
   bool _loading = true;
+  bool _fromCache = false;
 
   @override
   void initState() {
@@ -22,15 +23,27 @@ class _ProducersScreenState extends State<ProducersScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final list = await Api.instance.list('/producers/');
+    final r = await Api.instance.listCached('/producers/?page_size=2000', 'producers');
     if (!mounted) return;
-    setState(() { _producers = list; _loading = false; });
+    setState(() { _producers = r.data; _fromCache = r.fromCache; _loading = false; });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.forMapping ? 'Choisir un producteur' : 'Producteurs')),
+      appBar: AppBar(
+        title: Text(widget.forMapping ? 'Choisir un producteur' : 'Producteurs'),
+        bottom: _fromCache
+            ? const PreferredSize(
+                preferredSize: Size.fromHeight(28),
+                child: ColoredBox(
+                  color: Color(0xFFFFF4D6),
+                  child: SizedBox(width: double.infinity, height: 28,
+                      child: Center(child: Text('Hors ligne : liste enregistrée sur le téléphone',
+                          style: TextStyle(fontSize: 12, color: Color(0xFF7A5300))))),
+                ))
+            : null,
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(

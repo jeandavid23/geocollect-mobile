@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'config.dart';
 import 'services/api.dart';
+import 'services/offline.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Api.instance.loadToken();
+  await Offline.instance.load();
+  if (Api.instance.isLoggedIn) Offline.instance.startAutoSync();
   runApp(const GeoCollectApp());
 }
 

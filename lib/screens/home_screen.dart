@@ -5,6 +5,7 @@ import 'login_screen.dart';
 import 'producers_screen.dart';
 import 'parcels_screen.dart';
 import 'account_screen.dart';
+import '../widgets_sync.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -51,7 +52,9 @@ class HomeScreen extends StatelessWidget {
               subtitle: Text(_roleLabel),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
+          if (isAgent) const SyncCard(),
+          const SizedBox(height: 4),
           if (isAgent) ...[
             _tile(context, Icons.satellite_alt, 'Nouveau mapping',
                 'Cartographier une parcelle au GPS', () => _open(context, const ProducersScreen(forMapping: true))),
