@@ -14,6 +14,8 @@ class _ProducersScreenState extends State<ProducersScreen> {
   List<dynamic> _producers = [];
   bool _loading = true;
   bool _fromCache = false;
+  // mapping : par défaut les producteurs du registre sans aucun polygone (« à mapper »)
+  bool _onlyToMap = true;
 
   @override
   void initState() {
@@ -23,7 +25,9 @@ class _ProducersScreenState extends State<ProducersScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final r = await Api.instance.listCached('/producers/?page_size=2000', 'producers');
+    final toMap = widget.forMapping && _onlyToMap;
+    final r = await Api.instance.listCached(
+        toMap ? '/producers/?to_map=true&page_size=2000' : '/producers/?page_size=2000', toMap ? 'producers_to_map' : 'producers');
     if (!mounted) return;
     setState(() { _producers = r.data; _fromCache = r.fromCache; _loading = false; });
   }
@@ -32,7 +36,14 @@ class _ProducersScreenState extends State<ProducersScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.forMapping ? 'Choisir un producteur' : 'Producteurs'),
+        title: Text(widget.forMapping ? (_onlyToMap ? 'Producteurs à mapper' : 'Tous les producteurs') : 'Producteurs'),
+        actions: [
+          if (widget.forMapping)
+            TextButton(
+              onPressed: () { setState(() => _onlyToMap = !_onlyToMap); _load(); },
+              child: Text(_onlyToMap ? 'Voir tous' : 'À mapper', style: const TextStyle(color: Colors.white)),
+            ),
+        ],
         bottom: _fromCache
             ? const PreferredSize(
                 preferredSize: Size.fromHeight(28),
@@ -51,7 +62,7 @@ class _ProducersScreenState extends State<ProducersScreen> {
               child: _producers.isEmpty
                   ? ListView(children: const [
                       Padding(padding: EdgeInsets.all(40),
-                          child: Center(child: Text('Aucun producteur.\nTirez pour rafraîchir.', textAlign: TextAlign.center)))
+                          child: Center(child: Text('Aucun producteur à afficher.\nTirez pour rafraîchir.', textAlign: TextAlign.center)))
                     ])
                   : ListView.separated(
                       itemCount: _producers.length,
@@ -68,7 +79,7 @@ class _ProducersScreenState extends State<ProducersScreen> {
                           subtitle: Text('${p['field_id_base'] ?? ''} · ${p['village'] ?? ''}'),
                           trailing: widget.forMapping
                               ? const Icon(Icons.satellite_alt, color: Color(kPrimaryColor))
-                              : Text('${p['parcel_count'] ?? 0} parc.'),
+                              : Text('${p['polygon_count'] ?? p['parcel_count'] ?? 0} polyg.'),
                           onTap: widget.forMapping
                               ? () => Navigator.push(context, MaterialPageRoute(
                                   builder: (_) => MappingScreen(producer: p)))
