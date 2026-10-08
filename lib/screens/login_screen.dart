@@ -70,10 +70,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _fill(String u, String p) {
-    _user.text = u;
-    _pass.text = p;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -156,17 +152,11 @@ class _LoginScreenState extends State<LoginScreen> {
                               minimumSize: const Size.fromHeight(46)),
                         ),
                       ],
-                      const SizedBox(height: 8),
-                      Wrap(spacing: 6, children: [
-                        _demo('admin', 'admin123'),
-                        _demo('coop', 'coop123'),
-                        _demo('agent', 'agent123'),
-                      ]),
                     ],
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text('Le serveur peut mettre 30-50 s à se réveiller.',
+                const Text('Mot de passe oublié ? Demandez-le à votre coopérative.',
                     style: TextStyle(color: Color(0xFF9FD8B4), fontSize: 12)),
               ],
             ),
@@ -175,9 +165,4 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-
-  Widget _demo(String u, String p) => ActionChip(
-        label: Text(u, style: const TextStyle(fontSize: 12)),
-        onPressed: () => _fill(u, p),
-      );
 }
