@@ -27,11 +27,89 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
     setState(() => _loading = false);
     if (ok) {
-      Offline.instance.startAutoSync();
-      Navigator.pushReplacement(
-          context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+      await _afterLogin(_pass.text);
+    } else if (Api.instance.pendingMfa != null) {
+      await _askMfa(_pass.text);
     } else {
       setState(() => _error = 'Identifiant ou mot de passe incorrect.');
+    }
+  }
+
+  /// Double authentification : code à 6 chiffres de l'application (ou code de secours).
+  Future<void> _askMfa(String typedPassword) async {
+    final code = TextEditingController();
+    String? err;
+    while (true) {
+      if (!mounted) return;
+      final value = await showDialog<String>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Code de vérification'),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Text("Saisissez le code à 6 chiffres de votre application d'authentification (ou un code de secours)."),
+            const SizedBox(height: 12),
+            TextField(controller: code, autofocus: true, textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 22, letterSpacing: 6),
+                decoration: InputDecoration(hintText: '123456', errorText: err)),
+          ]),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annuler')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, code.text), child: const Text('Valider')),
+          ],
+        ),
+      );
+      if (value == null || !mounted) return;
+      err = await Api.instance.verifyMfa(value);
+      if (err == null) {
+        await _afterLogin(typedPassword);
+        return;
+      }
+      code.clear();
+    }
+  }
+
+  /// Après connexion : mot de passe provisoire → nouveau mot de passe obligatoire, puis accueil.
+  Future<void> _afterLogin(String typedPassword) async {
+    if (Api.instance.mustChangePassword) {
+      final changed = await _forceNewPassword(typedPassword);
+      if (!changed) {
+        await Api.instance.logout();
+        return;
+      }
+    }
+    if (!mounted) return;
+    Offline.instance.startAutoSync();
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+  }
+
+  Future<bool> _forceNewPassword(String oldPassword) async {
+    final p1 = TextEditingController();
+    final p2 = TextEditingController();
+    String? err;
+    while (true) {
+      if (!mounted) return false;
+      final go = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Choisissez votre mot de passe'),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Text('Votre compte a un mot de passe provisoire. Choisissez le vôtre (10 caractères au moins, avec chiffres et lettres).'),
+            TextField(controller: p1, obscureText: true, decoration: const InputDecoration(labelText: 'Nouveau mot de passe')),
+            TextField(controller: p2, obscureText: true, decoration: InputDecoration(labelText: 'Confirmation', errorText: err)),
+          ]),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Enregistrer')),
+          ],
+        ),
+      );
+      if (go != true) return false;
+      if (p1.text.length < 10) { err = '10 caractères au moins.'; continue; }
+      if (p1.text != p2.text) { err = 'Les deux mots de passe diffèrent.'; continue; }
+      if (await Api.instance.changePassword(oldPassword, p1.text)) return true;
+      err = 'Mot de passe refusé : trop simple ou trop courant.';
     }
   }
 
@@ -61,6 +139,8 @@ class _LoginScreenState extends State<LoginScreen> {
         Offline.instance.startAutoSync();
         Navigator.pushReplacement(
             context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+      } else if (err == 'mfa') {
+        await _askMfa('');
       } else {
         setState(() => _error = err);
       }

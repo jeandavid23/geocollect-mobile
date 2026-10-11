@@ -37,7 +37,8 @@ class GeoCollectApp extends StatelessWidget {
           ),
         ),
       ),
-      home: Api.instance.isLoggedIn ? const HomeScreen() : const LoginScreen(),
+      // mot de passe provisoire pas encore changé : retour à la connexion (le changement y est demandé)
+      home: Api.instance.isLoggedIn && !Api.instance.mustChangePassword ? const HomeScreen() : const LoginScreen(),
     );
   }
 }

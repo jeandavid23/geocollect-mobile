@@ -139,8 +139,15 @@ class Api {
     return (data: await Offline.cachedList(key) ?? <dynamic>[], fromCache: true);
   }
 
-  /// Connexion — renvoie true si succès.
+  /// Double authentification active : jeton de la 1re étape, en attente du code à 6 chiffres (verifyMfa).
+  String? pendingMfa;
+
+  /// Mot de passe provisoire (compte créé ou réinitialisé par un administrateur) : à changer avant de continuer.
+  bool get mustChangePassword => user?['must_change_password'] == true;
+
+  /// Connexion — renvoie true si la session est ouverte ; false sinon (pendingMfa != null : code à 6 chiffres attendu).
   Future<bool> login(String username, String password) async {
+    pendingMfa = null;
     final r = await client.post(
       Uri.parse('$kApiBase/auth/login/'),
       headers: {'Content-Type': 'application/json'},
@@ -148,6 +155,10 @@ class Api {
     );
     if (r.statusCode == 200) {
       final d = jsonDecode(utf8.decode(r.bodyBytes)) as Map<String, dynamic>;
+      if (d['mfa_required'] == true) {
+        pendingMfa = d['mfa_token'];
+        return false;
+      }
       _access = d['access'];
       _refresh = d['refresh'];
       user = d['user'];
@@ -155,6 +166,25 @@ class Api {
       return true;
     }
     return false;
+  }
+
+  /// 2e étape de connexion : code à 6 chiffres (ou code de secours). Renvoie null si succès, sinon le message.
+  Future<String?> verifyMfa(String code) async {
+    final r = await client.post(
+      Uri.parse('$kApiBase/auth/mfa/verify/'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'mfa_token': pendingMfa, 'code': code.trim()}),
+    );
+    final d = jsonDecode(utf8.decode(r.bodyBytes));
+    if (r.statusCode == 200 && d is Map<String, dynamic>) {
+      _access = d['access'];
+      _refresh = d['refresh'];
+      user = d['user'];
+      pendingMfa = null;
+      await _save();
+      return null;
+    }
+    return (d is Map && d['detail'] != null) ? d['detail'].toString() : 'Code incorrect.';
   }
 
   /// Connexion avec Google : le jeton d'identité est vérifié par le serveur, qui retrouve le compte par son e-mail.
@@ -167,6 +197,10 @@ class Api {
     );
     final d = jsonDecode(utf8.decode(r.bodyBytes));
     if (r.statusCode == 200 && d is Map<String, dynamic>) {
+      if (d['mfa_required'] == true) {
+        pendingMfa = d['mfa_token'];
+        return 'mfa';
+      }
       _access = d['access'];
       _refresh = d['refresh'];
       user = d['user'];
@@ -203,6 +237,10 @@ class Api {
       headers: _headers,
       body: jsonEncode({'old_password': oldP, 'new_password': newP}),
     );
+    if (r.statusCode == 200 && user != null) {
+      user!['must_change_password'] = false;
+      await _save();
+    }
     return r.statusCode == 200;
   }
 }
