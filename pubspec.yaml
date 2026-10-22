@@ -1,7 +1,7 @@
 name: geocollect_mobile
 description: "GeoCollect EUDR - application mobile de cartographie GPS et de conformite EUDR."
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.1.0+2
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
