@@ -13,7 +13,9 @@ class HomeScreen extends StatelessWidget {
   String get _roleLabel {
     switch (Api.instance.role) {
       case 'super_admin': return 'Super Administrateur';
+      case 'owner': return 'Propriétaire';
       case 'cooperative': return 'Coopérative';
+      case 'usine': return 'Usine';
       default: return 'Agent Mappeur';
     }
   }
